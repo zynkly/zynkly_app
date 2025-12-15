@@ -655,6 +655,75 @@ const PaymentScreen = ({ onBack, onPay, totalAmount }) => {
   );
 };
 
+const ProfileScreen = ({ onBack, onLogout }) => {
+  const MENU_ITEMS = [
+    { id: '1', title: 'Address book', icon: '📖' },
+    { id: '2', title: 'Share App', icon: '📤' },
+    { id: '3', title: 'About Us', icon: 'ℹ️' },
+    { id: '4', title: 'Rate Us', icon: '⭐' },
+    { id: '5', title: 'Logout', icon: '🚪', isLogout: true },
+  ];
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.profileHeader}>
+        <TouchableOpacity onPress={onBack} style={styles.profileBackButton}>
+          <Text style={styles.backButtonText}>←</Text>
+        </TouchableOpacity>
+        <View style={styles.profileInfoContainer}>
+          <View style={styles.profileAvatar}>
+            <Text style={styles.profileAvatarText}>👤</Text>
+          </View>
+          <Text style={styles.profileName}>Your Account</Text>
+          <Text style={styles.profilePhone}>+91 98765 43210</Text>
+        </View>
+      </View>
+
+      <ScrollView style={styles.profileContent}>
+        <View style={styles.quickActionsRow}>
+          <TouchableOpacity style={styles.quickActionItem}>
+            <View style={styles.quickActionIconBox}>
+              <Text style={styles.quickActionIcon}>📦</Text>
+            </View>
+            <Text style={styles.quickActionText}>Your orders</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickActionItem}>
+            <View style={styles.quickActionIconBox}>
+              <Text style={styles.quickActionIcon}>💰</Text>
+            </View>
+            <Text style={styles.quickActionText}>Zynkly Money</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickActionItem}>
+            <View style={styles.quickActionIconBox}>
+              <Text style={styles.quickActionIcon}>🎧</Text>
+            </View>
+            <Text style={styles.quickActionText}>Need Help</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.menuSection}>
+          <Text style={styles.menuSectionTitle}>Your information</Text>
+          {MENU_ITEMS.map((item) => (
+            <TouchableOpacity 
+              key={item.id} 
+              style={styles.menuItem}
+              onPress={item.isLogout ? onLogout : null}
+            >
+              <View style={styles.menuItemLeft}>
+                <Text style={styles.menuItemIcon}>{item.icon}</Text>
+                <Text style={[styles.menuItemTitle, item.isLogout && { color: 'red' }]}>
+                  {item.title}
+                </Text>
+              </View>
+              <Text style={styles.menuItemArrow}>›</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
@@ -762,9 +831,24 @@ const App = () => {
     );
   }
 
+  if (currentScreen === 'profile') {
+    return (
+      <ProfileScreen 
+        onBack={() => setCurrentScreen('dashboard')}
+        onLogout={() => {
+          setIsAuthenticated(false);
+          setCurrentScreen('dashboard');
+        }}
+      />
+    );
+  }
+
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.logo}>Zynkly</Text>
+      <TouchableOpacity style={styles.profileButton} onPress={() => setCurrentScreen('profile')}>
+        <Text style={styles.profileIcon}>👤</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -891,6 +975,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.primary,
+  },
+  profileButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+  },
+  profileIcon: {
+    fontSize: 20,
   },
   heroContainer: {
     padding: 20,
@@ -1735,6 +1827,115 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  // Profile Styles
+  profileHeader: {
+    backgroundColor: COLORS.white,
+    padding: 20,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  profileBackButton: {
+    position: 'absolute',
+    left: 20,
+    top: 20,
+    zIndex: 1,
+  },
+  profileInfoContainer: {
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  profileAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  profileAvatarText: {
+    fontSize: 40,
+  },
+  profileName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.secondary,
+    marginBottom: 4,
+  },
+  profilePhone: {
+    fontSize: 14,
+    color: COLORS.textLight,
+  },
+  profileContent: {
+    flex: 1,
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 20,
+    backgroundColor: COLORS.white,
+    marginBottom: 12,
+  },
+  quickActionItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  quickActionIconBox: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  quickActionIcon: {
+    fontSize: 24,
+  },
+  quickActionText: {
+    fontSize: 12,
+    color: COLORS.secondary,
+    fontWeight: '600',
+  },
+  menuSection: {
+    backgroundColor: COLORS.white,
+    padding: 20,
+  },
+  menuSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.secondary,
+    marginBottom: 16,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  menuItemIcon: {
+    fontSize: 20,
+    marginRight: 16,
+    width: 24,
+    textAlign: 'center',
+  },
+  menuItemTitle: {
+    fontSize: 16,
+    color: COLORS.secondary,
+  },
+  menuItemArrow: {
+    fontSize: 20,
+    color: COLORS.textLight,
   },
 });
 
