@@ -97,6 +97,7 @@ const BACKGROUND_ICONS = ['🧹', '🧽', '🧼', '🧺', '🚿', '🚽', '🧤'
 const LoginScreen = ({ onLogin, onSignup }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const handleLogin = () => {
     if (!email || !password) {
@@ -133,11 +134,13 @@ const LoginScreen = ({ onLogin, onSignup }) => {
                 style={[styles.loginInput, {marginBottom: 0, flex: 1}]}
                 placeholder="Password"
                 placeholderTextColor="#aaa"
-                secureTextEntry
+                secureTextEntry={!isPasswordVisible}
                 value={password}
                 onChangeText={setPassword}
               />
-              <Text style={styles.eyeIcon}>👁️</Text>
+              <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+                <Text style={styles.eyeIcon}>{isPasswordVisible ? '🙈' : '👁️'}</Text>
+              </TouchableOpacity>
           </View>
 
           <View style={styles.optionsRow}>
