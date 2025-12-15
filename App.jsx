@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -16,19 +16,21 @@ import {
   Platform,
   Alert,
   BackHandler,
+  Animated,
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
 const COLORS = {
-  primary: '#16A34A', // Green
-  secondary: '#1E293B', // Dark Slate
-  background: '#F8FAFC', // Light Gray/White
+  primary: '#00D26A', // Vibrant Gen Z Green
+  primaryLight: '#DCFCE7', // Low opacity green
+  secondary: '#0F172A', // Deep Navy
+  background: '#F0FDF4', // Minty Green Background
   white: '#FFFFFF',
   text: '#334155',
   textLight: '#64748B',
-  accent: '#F59E0B', // Amber for stars/highlights
-  border: '#E2E8F0',
+  accent: '#FBBF24', 
+  border: '#BBF7D0', // Soft Green Border
 };
 
 const SERVICES = [
@@ -39,6 +41,7 @@ const SERVICES = [
     price: '₹29',
     duration: '30 Minutes',
     image: 'https://i.ibb.co/mrV6yZ9L/kitchen-cleaning.jpg',
+    category: 'Deep Cleaning',
   },
   {
     id: '2',
@@ -47,6 +50,7 @@ const SERVICES = [
     price: '₹69',
     duration: '30 Minutes',
     image: 'https://i.ibb.co/JW60XCcK/room.jpg',
+    category: 'Regular Cleaning',
   },
   {
     id: '3',
@@ -55,6 +59,7 @@ const SERVICES = [
     price: '₹49',
     duration: '28 Minutes',
     image: 'https://i.ibb.co/Y79HtSKL/bathroom.jpg',
+    category: 'Deep Cleaning',
   },
   {
     id: '4',
@@ -63,6 +68,7 @@ const SERVICES = [
     price: '₹50',
     duration: '8 Minutes',
     image: 'https://i.ibb.co/6qFsrjL/laundry.jpg',
+    category: 'Regular Cleaning',
   },
   {
     id: '5',
@@ -71,12 +77,33 @@ const SERVICES = [
     price: '₹500',
     duration: '180 Minutes',
     image: 'https://i.ibb.co/B2K8BR7g/office.jpg',
+    category: 'Office Cleaning',
+  },
+  {
+    id: '6',
+    title: 'Move-in Cleaning',
+    description: 'Complete deep cleaning for your new home before you move in.',
+    price: '₹1500',
+    duration: '240 Minutes',
+    image: 'https://i.ibb.co/JW60XCcK/room.jpg',
+    category: 'Move-in/out',
+  },
+  {
+    id: '7',
+    title: 'Quick Dusting',
+    description: 'Rapid 15-minute dusting service for urgent needs.',
+    price: '₹99',
+    duration: '15 Minutes',
+    image: 'https://i.ibb.co/JW60XCcK/room.jpg',
+    category: 'Quick Service (15 min)',
   },
 ];
 
+const CATEGORIES = ['All Services', 'Deep Cleaning', 'Regular Cleaning', 'Move-in/out', 'Office Cleaning', 'Quick Service (15 min)'];
+
 const FEATURES = [
   { id: '1', title: 'Professional Cleaners', icon: '👨‍💼' },
-  { id: '2', title: 'Flexible Scheduling', icon: '📅' },
+  { id: '2', title: 'Flexible Scheduling', icon: '⏰' },
   { id: '3', title: 'Affordable Prices', icon: '💰' },
   { id: '4', title: '100% Satisfaction', icon: '✨' },
 ];
@@ -168,7 +195,18 @@ const LoginScreen = ({ onLogin, onSignup }) => {
 
           <View style={styles.socialRow}>
               <TouchableOpacity style={styles.socialIcon}>
-                <Text style={{fontSize: 20}}>G</Text>
+                <Image 
+                  source={{ uri: 'https://cdn-icons-png.flaticon.com/512/300/300221.png' }} 
+                  style={{ width: 24, height: 24 }} 
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.socialIcon}>
+                <Image 
+                  source={{ uri: 'https://cdn-icons-png.flaticon.com/512/0/747.png' }} 
+                  style={{ width: 24, height: 24 }} 
+                  resizeMode="contain"
+                />
               </TouchableOpacity>
           </View>
         </ScrollView>
@@ -332,6 +370,8 @@ const OtpVerificationScreen = ({ onVerify, email }) => {
 };
 
 const ServiceBookingScreen = ({ onBack, cartCount, onAdd, onCartPress }) => {
+  const [selectedCategory, setSelectedCategory] = useState('All Services');
+
   useEffect(() => {
     const backAction = () => {
       onBack();
@@ -345,6 +385,27 @@ const ServiceBookingScreen = ({ onBack, cartCount, onAdd, onCartPress }) => {
 
     return () => backHandler.remove();
   }, [onBack]);
+
+  const filteredServices = selectedCategory === 'All Services' 
+    ? SERVICES 
+    : SERVICES.filter(service => service.category === selectedCategory);
+
+  const renderCategoryItem = ({ item }) => (
+    <TouchableOpacity 
+      style={[
+        styles.categoryTab, 
+        selectedCategory === item && styles.activeCategoryTab
+      ]}
+      onPress={() => setSelectedCategory(item)}
+    >
+      <Text style={[
+        styles.categoryTabText, 
+        selectedCategory === item && styles.activeCategoryTabText
+      ]}>
+        {item}
+      </Text>
+    </TouchableOpacity>
+  );
 
   const renderServiceItem = ({ item }) => (
     <View style={styles.serviceListCard}>
@@ -366,11 +427,13 @@ const ServiceBookingScreen = ({ onBack, cartCount, onAdd, onCartPress }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
+        {onBack && (
+          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+            <Text style={styles.backButtonText}>← Back</Text>
+          </TouchableOpacity>
+        )}
         <Text style={styles.headerTitle}>Select Service</Text>
         <TouchableOpacity 
           style={styles.cartButton} 
@@ -387,13 +450,25 @@ const ServiceBookingScreen = ({ onBack, cartCount, onAdd, onCartPress }) => {
           </View>
         </TouchableOpacity>
       </View>
+      
+      <View style={styles.categoryContainer}>
+        <FlatList
+          data={CATEGORIES}
+          renderItem={renderCategoryItem}
+          keyExtractor={item => item}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryList}
+        />
+      </View>
+
       <FlatList
-        data={SERVICES}
+        data={filteredServices}
         renderItem={renderServiceItem}
         keyExtractor={item => item.id}
-        contentContainerStyle={styles.serviceListContainer}
+        contentContainerStyle={[styles.serviceListContainer, { paddingBottom: 100 }]}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -665,11 +740,13 @@ const ProfileScreen = ({ onBack, onLogout }) => {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.profileHeader}>
-        <TouchableOpacity onPress={onBack} style={styles.profileBackButton}>
-          <Text style={styles.backButtonText}>←</Text>
-        </TouchableOpacity>
+        {onBack && (
+          <TouchableOpacity onPress={onBack} style={styles.profileBackButton}>
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.profileInfoContainer}>
           <View style={styles.profileAvatar}>
             <Text style={styles.profileAvatarText}>👤</Text>
@@ -679,7 +756,7 @@ const ProfileScreen = ({ onBack, onLogout }) => {
         </View>
       </View>
 
-      <ScrollView style={styles.profileContent}>
+      <ScrollView style={styles.profileContent} contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={styles.quickActionsRow}>
           <TouchableOpacity style={styles.quickActionItem}>
             <View style={styles.quickActionIconBox}>
@@ -720,7 +797,114 @@ const ProfileScreen = ({ onBack, onLogout }) => {
           ))}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
+  );
+};
+
+const BottomNavBar = ({ currentScreen, onNavigate }) => {
+  const tabs = [
+    { id: 'dashboard', label: 'Home', icon: '🏠' },
+    { id: 'booking', label: 'Booking', icon: '�️' },
+    { id: 'profile', label: 'Account', icon: '👤' },
+  ];
+
+  return (
+    <View style={styles.bottomNavContainer}>
+      <View style={styles.bottomNav}>
+        {tabs.map((tab) => {
+          const isActive = currentScreen === tab.id;
+          return (
+            <TouchableOpacity 
+              key={tab.id} 
+              style={styles.navItem} 
+              onPress={() => onNavigate(tab.id)}
+            >
+              <View style={[styles.navIconContainer, isActive && styles.activeNavIconContainer]}>
+                <Text style={[styles.navIcon, isActive && styles.activeNavIcon]}>
+                  {tab.icon}
+                </Text>
+              </View>
+              <Text style={[styles.navLabel, isActive && styles.activeNavLabel]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
+
+const SplashScreen = ({ onFinish }) => {
+  const [step, setStep] = useState(0); // 0: Zynkly, 1: Tagline
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.5)).current;
+
+  useEffect(() => {
+    // Sequence 1: Show "Zynkly"
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Sequence 2: Switch to Tagline after delay
+    const timer1 = setTimeout(() => {
+        // Fade out Zynkly
+        Animated.timing(fadeAnim, {
+            toValue: 0,
+            duration: 500,
+            useNativeDriver: true
+        }).start(() => {
+            setStep(1);
+            scaleAnim.setValue(0.8); // Reset scale for next text
+            // Fade in Tagline
+            Animated.parallel([
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(scaleAnim, {
+                    toValue: 1,
+                    friction: 4,
+                    useNativeDriver: true,
+                }),
+            ]).start();
+        });
+    }, 1000);
+
+    // Sequence 3: Finish
+    const timer2 = setTimeout(() => {
+        onFinish();
+    }, 4000); // Total time
+
+    return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+    };
+  }, []);
+
+  return (
+    <View style={styles.splashContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+      <Animated.View style={{ opacity: fadeAnim, transform: [{ scale: scaleAnim }], alignItems: 'center', paddingHorizontal: 20 }}>
+        {step === 0 ? (
+            <Text style={styles.splashLogoText}>Zynkly</Text>
+        ) : (
+            <Text style={styles.splashTagline}>
+                Floor ho ya Bathroom , ya fir ho kapdo may gandagi. Book kro Zynkly !
+            </Text>
+        )}
+      </Animated.View>
+    </View>
   );
 };
 
@@ -728,6 +912,7 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
   const [isOtpVerification, setIsOtpVerification] = useState(false);
+  const [showSplash, setShowSplash] = useState(false);
   const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [cart, setCart] = useState([]);
   const isDarkMode = useColorScheme() === 'dark';
@@ -735,6 +920,10 @@ const App = () => {
   const addToCart = (service) => {
     setCart([...cart, service]);
   };
+
+  if (showSplash) {
+    return <SplashScreen onFinish={() => { setShowSplash(false); setIsAuthenticated(true); }} />;
+  }
 
   if (!isAuthenticated) {
     if (isOtpVerification) {
@@ -760,19 +949,8 @@ const App = () => {
     }
     return (
       <LoginScreen 
-        onLogin={() => setIsAuthenticated(true)} 
+        onLogin={() => setShowSplash(true)} 
         onSignup={() => setIsSignup(true)} 
-      />
-    );
-  }
-
-  if (currentScreen === 'booking') {
-    return (
-      <ServiceBookingScreen 
-        onBack={() => setCurrentScreen('dashboard')} 
-        cartCount={cart.length}
-        onAdd={addToCart}
-        onCartPress={() => setCurrentScreen('cart')}
       />
     );
   }
@@ -831,33 +1009,15 @@ const App = () => {
     );
   }
 
-  if (currentScreen === 'profile') {
-    return (
-      <ProfileScreen 
-        onBack={() => setCurrentScreen('dashboard')}
-        onLogout={() => {
-          setIsAuthenticated(false);
-          setCurrentScreen('dashboard');
-        }}
-      />
-    );
-  }
-
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.logo}>Zynkly</Text>
-      <TouchableOpacity style={styles.profileButton} onPress={() => setCurrentScreen('profile')}>
-        <Text style={styles.profileIcon}>👤</Text>
-      </TouchableOpacity>
     </View>
   );
 
   const renderHero = () => (
     <View style={styles.heroContainer}>
       <Text style={styles.heroTitle}>India's 15 Minute House Help Service</Text>
-      <Text style={styles.heroSubtitle}>
-        Your home, professionally cleaned — exactly when you need it. On-demand professional cleaners available 24x7.
-      </Text>
       
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
@@ -875,10 +1035,6 @@ const App = () => {
           <Text style={styles.statLabel}>Pros</Text>
         </View>
       </View>
-
-      <TouchableOpacity style={styles.primaryBtn} onPress={() => setCurrentScreen('booking')}>
-        <Text style={styles.primaryBtnText}>Book a Service</Text>
-      </TouchableOpacity>
     </View>
   );
 
@@ -939,11 +1095,30 @@ const App = () => {
     </View>
   );
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
-      {renderHeader()}
-      <ScrollView showsVerticalScrollIndicator={false}>
+  const renderMainContent = () => {
+    if (currentScreen === 'booking') {
+      return (
+        <ServiceBookingScreen 
+          cartCount={cart.length}
+          onAdd={addToCart}
+          onCartPress={() => setCurrentScreen('cart')}
+        />
+      );
+    }
+    
+    if (currentScreen === 'profile') {
+      return (
+        <ProfileScreen 
+          onLogout={() => {
+            setIsAuthenticated(false);
+            setCurrentScreen('dashboard');
+          }}
+        />
+      );
+    }
+
+    return (
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {renderHero()}
         {renderFeatures()}
         {renderSteps()}
@@ -952,6 +1127,17 @@ const App = () => {
           <Text style={styles.footerText}>© 2025 Zynkly. All rights reserved.</Text>
         </View>
       </ScrollView>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={COLORS.background} />
+      {currentScreen === 'dashboard' && renderHeader()}
+      <View style={{ flex: 1 }}>
+        {renderMainContent()}
+      </View>
+      <BottomNavBar currentScreen={currentScreen} onNavigate={setCurrentScreen} />
     </SafeAreaView>
   );
 };
@@ -967,7 +1153,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: COLORS.white,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Glassmorphism effect
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
@@ -986,16 +1172,20 @@ const styles = StyleSheet.create({
   },
   heroContainer: {
     padding: 20,
-    backgroundColor: COLORS.white,
+    backgroundColor: 'transparent', // Let the gradient/background show through
     alignItems: 'center',
+    marginBottom: 10,
   },
   heroTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: COLORS.secondary,
+    fontSize: 32,
+    fontWeight: '900',
+    color: COLORS.primary,
     textAlign: 'center',
-    marginBottom: 10,
-    lineHeight: 36,
+    marginBottom: 15,
+    lineHeight: 40,
+    textShadowColor: 'rgba(22, 163, 74, 0.3)',
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 10,
   },
   heroSubtitle: {
     fontSize: 16,
@@ -1009,43 +1199,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     width: '100%',
     marginBottom: 24,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.white,
     padding: 15,
-    borderRadius: 12,
+    borderRadius: 20,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   statItem: {
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '900',
     color: COLORS.primary,
   },
   statLabel: {
     fontSize: 12,
     color: COLORS.textLight,
+    fontWeight: '600',
   },
   statDivider: {
     width: 1,
     backgroundColor: COLORS.border,
-  },
-  primaryBtn: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    width: '100%',
-    alignItems: 'center',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  primaryBtnText: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   sectionContainer: {
     paddingVertical: 24,
@@ -1076,11 +1256,16 @@ const styles = StyleSheet.create({
     width: '48%',
     backgroundColor: COLORS.white,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 20,
     marginBottom: 16,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   featureIcon: {
     fontSize: 32,
@@ -1140,7 +1325,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   addButton: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: COLORS.primaryLight,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -1168,6 +1353,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 16,
     zIndex: 1,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   stepNumber: {
     color: COLORS.white,
@@ -1193,7 +1383,7 @@ const styles = StyleSheet.create({
     top: 40,
     bottom: -24,
     width: 2,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: COLORS.border,
     zIndex: 0,
   },
   testimonialScroll: {
@@ -1211,7 +1401,7 @@ const styles = StyleSheet.create({
   },
   quote: {
     fontSize: 40,
-    color: '#CBD5E1',
+    color: COLORS.primaryLight,
     lineHeight: 40,
     marginBottom: -10,
   },
@@ -1230,7 +1420,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -1263,7 +1453,7 @@ const styles = StyleSheet.create({
   // Login Styles
   loginContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.background,
   },
   loginHeaderContainer: {
     height: 250,
@@ -1273,6 +1463,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
   loginHeaderWave: {
     alignItems: 'center',
@@ -1289,26 +1484,41 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: 28,
-    color: '#333',
+    color: COLORS.secondary,
     marginBottom: 30,
     textAlign: 'center',
+    fontWeight: 'bold',
   },
   loginInput: {
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#FFFFFF',
     borderRadius: 25,
     paddingHorizontal: 20,
     paddingVertical: 15,
     fontSize: 16,
     marginBottom: 15,
-    color: '#333',
+    color: COLORS.secondary,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#FFFFFF',
     borderRadius: 25,
     paddingHorizontal: 20,
     marginBottom: 15,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
   eyeIcon: {
     padding: 10,
@@ -1506,6 +1716,37 @@ const styles = StyleSheet.create({
   },
   */
   // Service Booking Styles
+  categoryContainer: {
+    backgroundColor: COLORS.white,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  categoryList: {
+    paddingHorizontal: 16,
+  },
+  categoryTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginRight: 10,
+    backgroundColor: COLORS.white,
+  },
+  activeCategoryTab: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  categoryTabText: {
+    fontSize: 14,
+    color: COLORS.textLight,
+    fontWeight: '500',
+  },
+  activeCategoryTabText: {
+    color: COLORS.white,
+    fontWeight: 'bold',
+  },
   serviceListContainer: {
     padding: 20,
   },
@@ -1748,13 +1989,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   amountContainer: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: COLORS.background,
     padding: 24,
     borderRadius: 16,
     alignItems: 'center',
     marginBottom: 32,
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: COLORS.border,
   },
   amountLabel: {
     fontSize: 14,
@@ -1787,7 +2028,7 @@ const styles = StyleSheet.create({
   },
   paymentOptionSelected: {
     borderColor: COLORS.primary,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: COLORS.background,
   },
   paymentOptionLeft: {
     flexDirection: 'row',
@@ -1820,8 +2061,14 @@ const styles = StyleSheet.create({
   payBtn: {
     backgroundColor: COLORS.primary,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 30,
     alignItems: 'center',
+    width: '100%',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   payBtnText: {
     color: COLORS.white,
@@ -1936,6 +2183,81 @@ const styles = StyleSheet.create({
   menuItemArrow: {
     fontSize: 20,
     color: COLORS.textLight,
+  },
+  // Bottom Nav Styles
+  bottomNavContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.white,
+    width: '90%',
+    borderRadius: 35,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  navItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  activeNavIconContainer: {
+    backgroundColor: '#86EFAC', // Darker green
+    borderRadius: 20,
+  },
+  navIcon: {
+    fontSize: 20,
+    color: COLORS.textLight,
+  },
+  activeNavIcon: {
+    color: COLORS.primary,
+  },
+  navLabel: {
+    fontSize: 10,
+    color: COLORS.textLight,
+    fontWeight: '600',
+  },
+  activeNavLabel: {
+    color: COLORS.secondary,
+    fontWeight: 'bold',
+  },
+  // Splash Screen Styles
+  splashContainer: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  splashLogoText: {
+    fontSize: 50,
+    fontWeight: 'bold',
+    color: COLORS.white,
+    fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : 'sans-serif',
+  },
+  splashTagline: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: COLORS.white,
+    textAlign: 'center',
+    lineHeight: 36,
   },
 });
 
