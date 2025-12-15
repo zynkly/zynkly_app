@@ -17,6 +17,8 @@ import {
   Alert,
   BackHandler,
 } from 'react-native';
+import RazorpayCheckout from 'react-native-razorpay';
+import api, { setAuthToken as setApiAuthToken } from './src/api/client';
 
 const { width } = Dimensions.get('window');
 
@@ -97,13 +99,34 @@ const BACKGROUND_ICONS = ['🧹', '🧽', '🧼', '🧺', '🚿', '🚽', '🧤'
 const LoginScreen = ({ onLogin, onSignup }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter email and password");
+      Alert.alert('Error', 'Please enter email and password');
       return;
     }
-    onLogin();
+
+    try {
+      setLoading(true);
+      const res = await api.post('/auth/login', {
+        email,
+        password,
+      });
+      const token = res.data.accessToken;
+      if (token) {
+        setApiAuthToken(token);
+      }
+      Alert.alert('Success', res.data.message || 'Login successful');
+      onLogin({
+        token,
+        user: res.data.user,
+      });
+    } catch (err) {
+      Alert.alert('Error', err?.response?.data?.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -148,8 +171,8 @@ const LoginScreen = ({ onLogin, onSignup }) => {
               <Text style={styles.forgotText}>Forget password?</Text>
           </View>
 
-          <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-              <Text style={styles.loginBtnText}>Login</Text>
+          <TouchableOpacity style={styles.loginBtn} onPress={handleLogin} disabled={loading}>
+              <Text style={styles.loginBtnText}>{loading ? 'Logging in...' : 'Login'}</Text>
           </TouchableOpacity>
 
           <View style={styles.signupRow}>
@@ -180,19 +203,32 @@ const SignupScreen = ({ onLogin, onSignupSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (!name || !phone || !email || !password || !confirmPassword) {
-      Alert.alert("Error", "Please fill all fields");
+      Alert.alert('Error', 'Please fill all fields');
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      Alert.alert('Error', 'Passwords do not match');
       return;
     }
-    // Simulate signup
-    Alert.alert("Success", "Account created successfully!");
-    onSignupSuccess();
+
+    try {
+      setLoading(true);
+      const res = await api.post('/auth/signup', {
+        name,
+        email,
+        password,
+      });
+      Alert.alert('Success', res.data.message || 'Signup successful, OTP sent to email');
+      onSignupSuccess(email);
+    } catch (err) {
+      Alert.alert('Error', err?.response?.data?.message || 'Signup failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -258,8 +294,8 @@ const SignupScreen = ({ onLogin, onSignupSuccess }) => {
               />
           </View>
 
-          <TouchableOpacity style={[styles.loginBtn, {marginTop: 20}]} onPress={handleSignup}>
-              <Text style={styles.loginBtnText}>Sign Up</Text>
+          <TouchableOpacity style={[styles.loginBtn, {marginTop: 20}]} onPress={handleSignup} disabled={loading}>
+              <Text style={styles.loginBtnText}>{loading ? 'Signing up...' : 'Sign Up'}</Text>
           </TouchableOpacity>
 
           <View style={styles.signupRow}>
@@ -274,15 +310,38 @@ const SignupScreen = ({ onLogin, onSignupSuccess }) => {
 
 const OtpVerificationScreen = ({ onVerify, email }) => {
   const [otp, setOtp] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleVerify = () => {
-    if (otp.length !== 4) {
-      Alert.alert("Error", "Please enter a valid 4-digit OTP");
+  const handleVerify = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Missing email for verification. Please signup again.');
       return;
     }
-    // Simulate OTP verification
-    Alert.alert("Success", "Email Verified Successfully!");
-    onVerify();
+    if (otp.length !== 4) {
+      Alert.alert('Error', 'Please enter a valid 4-digit OTP');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await api.post('/auth/verify-otp', {
+        email,
+        otp,
+      });
+      const token = res.data.accessToken;
+      if (token) {
+        setApiAuthToken(token);
+      }
+      Alert.alert('Success', res.data.message || 'Email Verified Successfully!');
+      onVerify({
+        token,
+        user: res.data.user,
+      });
+    } catch (err) {
+      Alert.alert('Error', err?.response?.data?.message || 'OTP verification failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -312,8 +371,8 @@ const OtpVerificationScreen = ({ onVerify, email }) => {
             onChangeText={setOtp}
           />
 
-          <TouchableOpacity style={[styles.loginBtn, {marginTop: 20}]} onPress={handleVerify}>
-              <Text style={styles.loginBtnText}>Verify</Text>
+          <TouchableOpacity style={[styles.loginBtn, {marginTop: 20}]} onPress={handleVerify} disabled={loading}>
+              <Text style={styles.loginBtnText}>{loading ? 'Verifying...' : 'Verify'}</Text>
           </TouchableOpacity>
 
           <View style={styles.signupRow}>
@@ -658,6 +717,9 @@ const App = () => {
   const [isOtpVerification, setIsOtpVerification] = useState(false);
   const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [cart, setCart] = useState([]);
+  const [authToken, setAuthTokenState] = useState(null);
+  const [user, setUser] = useState(null);
+  const [pendingEmail, setPendingEmail] = useState('');
   const isDarkMode = useColorScheme() === 'dark';
 
   const addToCart = (service) => {
@@ -668,8 +730,11 @@ const App = () => {
     if (isOtpVerification) {
       return (
         <OtpVerificationScreen 
-          onVerify={() => {
+          email={pendingEmail}
+          onVerify={({ token, user }) => {
             setIsOtpVerification(false);
+            setAuthTokenState(token);
+            setUser(user);
             setIsAuthenticated(true);
           }}
         />
@@ -679,8 +744,9 @@ const App = () => {
       return (
         <SignupScreen 
           onLogin={() => setIsSignup(false)} 
-          onSignupSuccess={() => {
+          onSignupSuccess={(email) => {
             setIsSignup(false);
+            setPendingEmail(email);
             setIsOtpVerification(true);
           }} 
         />
@@ -688,7 +754,11 @@ const App = () => {
     }
     return (
       <LoginScreen 
-        onLogin={() => setIsAuthenticated(true)} 
+        onLogin={({ token, user }) => {
+          setAuthTokenState(token);
+          setUser(user);
+          setIsAuthenticated(true);
+        }} 
         onSignup={() => setIsSignup(true)} 
       />
     );
@@ -706,11 +776,36 @@ const App = () => {
   }
 
   if (currentScreen === 'cart') {
+    const handleConfirmBooking = async () => {
+      if (!cart.length) {
+        Alert.alert('Cart Empty', 'Please add at least one service to cart.');
+        return;
+      }
+      try {
+        const totalAmount = cart.reduce((sum, item) => {
+          const price = parseInt(item.price.replace('₹', ''), 10);
+          return sum + price;
+        }, 0);
+        const serviceSummary = cart.map((item) => item.title).join(', ');
+
+        await api.post('/booking/create', {
+          service: serviceSummary,
+          price: totalAmount,
+          date: new Date().toISOString(),
+        });
+
+        Alert.alert('Booking Created', 'Your booking has been created. Please confirm address.');
+        setCurrentScreen('address');
+      } catch (err) {
+        Alert.alert('Error', err?.response?.data?.message || 'Failed to create booking');
+      }
+    };
+
     return (
       <CartScreen 
         cartItems={cart} 
         onBack={() => setCurrentScreen('booking')} 
-        onConfirm={() => setCurrentScreen('address')}
+        onConfirm={handleConfirmBooking}
       />
     );
   }
@@ -746,15 +841,63 @@ const App = () => {
       return sum + price;
     }, 0);
 
+    const handlePay = async (method) => {
+      if (method === 'cod') {
+        Alert.alert('Success', 'Booking confirmed with Cash on Delivery.');
+        setCart([]);
+        setCurrentScreen('dashboard');
+        return;
+      }
+
+      try {
+        const { data } = await api.post('/payment/create-order', {
+          amount: totalAmount,
+        });
+
+        const { orderId, amount, currency, key, paymentId } = data;
+
+        const options = {
+          description: 'Service payment',
+          image: 'https://placehold.co/100x100',
+          currency,
+          key,
+          amount,
+          name: 'ZYApp',
+          order_id: orderId,
+          prefill: {
+            email: user?.email || 'test@example.com',
+            contact: '9999999999',
+            name: user?.name || 'ZYApp User',
+          },
+          theme: { color: '#53a20e' },
+        };
+
+        const paymentResponse = await RazorpayCheckout.open(options);
+
+        const verifyRes = await api.post('/payment/verify', {
+          razorpay_order_id: paymentResponse.razorpay_order_id,
+          razorpay_payment_id: paymentResponse.razorpay_payment_id,
+          razorpay_signature: paymentResponse.razorpay_signature,
+          paymentRecordId: paymentId,
+        });
+
+        Alert.alert('Success', verifyRes.data.message || 'Payment verified successfully');
+        setCart([]);
+        setCurrentScreen('dashboard');
+      } catch (err) {
+        if (err && err.description) {
+          Alert.alert('Payment Cancelled', err.description);
+        } else {
+          Alert.alert('Error', err?.response?.data?.message || 'Payment failed');
+        }
+      }
+    };
+
     return (
       <PaymentScreen 
         onBack={() => setCurrentScreen('manualAddress')}
         totalAmount={totalAmount}
-        onPay={(method) => {
-          Alert.alert('Success', `Payment Successful via ${method.toUpperCase()}! Booking Confirmed.`);
-          setCart([]);
-          setCurrentScreen('dashboard');
-        }}
+        onPay={handlePay}
       />
     );
   }
