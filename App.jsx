@@ -17,6 +17,7 @@ import {
   Alert,
   BackHandler,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -121,7 +122,86 @@ const TESTIMONIALS = [
 
 const BACKGROUND_ICONS = ['🧹', '🧽', '🧼', '🧺', '🚿', '🚽', '🧤', '🧴', '🪣', '🛁', '👕', '🏠', '🧹', '🧽', '🧼', '🧺', '🚿', '🚽', '🧤', '🧴'];
 
-const LoginScreen = ({ onLogin, onSignup }) => {
+const GoogleLoginScreen = ({ onSuccess, onCancel }) => {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
+      <View style={{padding: 10, borderBottomWidth: 1, borderBottomColor: '#eee', flexDirection: 'row', alignItems: 'center'}}>
+        <TouchableOpacity onPress={onCancel} style={{padding: 10}}>
+          <Text style={{fontSize: 20, color: '#333'}}>✕</Text>
+        </TouchableOpacity>
+        <Text style={{fontSize: 16, fontWeight: 'bold', marginLeft: 10, color: '#333'}}>Sign in with Google</Text>
+      </View>
+      
+      {loading ? (
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <ActivityIndicator size="large" color="#4285F4" />
+          <Text style={{marginTop: 20, color: '#666'}}>Connecting to Google...</Text>
+        </View>
+      ) : (
+        <View style={{flex: 1, padding: 30, alignItems: 'center', justifyContent: 'center'}}>
+          <Image 
+            source={{ uri: 'https://cdn-icons-png.flaticon.com/512/300/300221.png' }} 
+            style={{ width: 60, height: 60, marginBottom: 20 }} 
+            resizeMode="contain"
+          />
+          <Text style={{fontSize: 22, fontWeight: 'bold', marginBottom: 10, color: '#333'}}>Choose an account</Text>
+          <Text style={{fontSize: 16, color: '#666', marginBottom: 40}}>to continue to Zynkly</Text>
+          
+          <TouchableOpacity 
+            style={{
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              padding: 15, 
+              borderWidth: 1, 
+              borderColor: '#ddd', 
+              borderRadius: 8, 
+              width: '100%',
+              marginBottom: 15
+            }}
+            onPress={onSuccess}
+          >
+            <View style={{width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginRight: 15}}>
+              <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 18}}>U</Text>
+            </View>
+            <View>
+              <Text style={{fontWeight: 'bold', fontSize: 16, color: '#333'}}>User Name</Text>
+              <Text style={{color: '#666'}}>user@example.com</Text>
+            </View>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={{
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              padding: 15, 
+              borderWidth: 1, 
+              borderColor: '#ddd', 
+              borderRadius: 8, 
+              width: '100%'
+            }}
+            onPress={onSuccess}
+          >
+             <View style={{width: 40, height: 40, borderRadius: 20, backgroundColor: '#666', justifyContent: 'center', alignItems: 'center', marginRight: 15}}>
+              <Text style={{color: '#fff', fontWeight: 'bold', fontSize: 18}}>+</Text>
+            </View>
+            <Text style={{fontWeight: 'bold', fontSize: 16, color: '#333'}}>Use another account</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </SafeAreaView>
+  );
+};
+
+const LoginScreen = ({ onLogin, onSignup, onGoogleLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -194,7 +274,7 @@ const LoginScreen = ({ onLogin, onSignup }) => {
           </View>
 
           <View style={styles.socialRow}>
-              <TouchableOpacity style={styles.socialIcon}>
+              <TouchableOpacity style={styles.socialIcon} onPress={onGoogleLogin}>
                 <Image 
                   source={{ uri: 'https://cdn-icons-png.flaticon.com/512/300/300221.png' }} 
                   style={{ width: 24, height: 24 }} 
@@ -221,12 +301,40 @@ const SignupScreen = ({ onLogin, onSignupSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // Interactive States
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [focusedInput, setFocusedInput] = useState(null);
+
+  // Password Validation States
+  const hasMinLength = password.length >= 9;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
 
   const handleSignup = () => {
     if (!name || !phone || !email || !password || !confirmPassword) {
       Alert.alert("Error", "Please fill all fields");
       return;
     }
+
+    if (!validateEmail(email)) {
+      Alert.alert("Error", "Please enter a valid email address");
+      return;
+    }
+
+    if (!hasMinLength || !hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
+      Alert.alert("Error", "Please meet all password requirements.");
+      return;
+    }
+
     if (password !== confirmPassword) {
       Alert.alert("Error", "Passwords do not match");
       return;
@@ -235,6 +343,18 @@ const SignupScreen = ({ onLogin, onSignupSuccess }) => {
     Alert.alert("Success", "Account created successfully!");
     onSignupSuccess();
   };
+
+  const getInputStyle = (inputName) => [
+    styles.loginInput,
+    focusedInput === inputName && { borderColor: COLORS.primary, borderWidth: 1, backgroundColor: COLORS.white }
+  ];
+
+  const renderPasswordRequirement = (met, text) => (
+    <View style={{flexDirection: 'row', alignItems: 'center', marginRight: 10, marginBottom: 5}}>
+      <Text style={{color: met ? COLORS.primary : '#ccc', marginRight: 4, fontSize: 12}}>{met ? '✓' : '○'}</Text>
+      <Text style={{color: met ? COLORS.secondary : '#999', fontSize: 12}}>{text}</Text>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.loginContainer}>
@@ -251,55 +371,80 @@ const SignupScreen = ({ onLogin, onSignupSuccess }) => {
           <Text style={styles.welcomeText}>Create <Text style={{fontWeight: 'bold'}}>Account</Text></Text>
           
           <TextInput
-            style={styles.loginInput}
+            style={getInputStyle('name')}
             placeholder="Full Name"
             placeholderTextColor="#aaa"
             value={name}
             onChangeText={setName}
+            onFocus={() => setFocusedInput('name')}
+            onBlur={() => setFocusedInput(null)}
           />
 
           <TextInput
-            style={styles.loginInput}
+            style={getInputStyle('phone')}
             placeholder="Phone Number"
             placeholderTextColor="#aaa"
             keyboardType="phone-pad"
             maxLength={10}
             value={phone}
             onChangeText={setPhone}
+            onFocus={() => setFocusedInput('phone')}
+            onBlur={() => setFocusedInput(null)}
           />
 
           <TextInput
-            style={styles.loginInput}
+            style={getInputStyle('email')}
             placeholder="Email"
             placeholderTextColor="#aaa"
             keyboardType="email-address"
             value={email}
             onChangeText={setEmail}
+            onFocus={() => setFocusedInput('email')}
+            onBlur={() => setFocusedInput(null)}
           />
           
-          <View style={styles.passwordContainer}>
+          <View style={[styles.passwordContainer, focusedInput === 'password' && { borderColor: COLORS.primary, borderWidth: 1, backgroundColor: COLORS.white }]}>
               <TextInput
-                style={[styles.loginInput, {marginBottom: 0, flex: 1}]}
+                style={{flex: 1, fontSize: 16, color: COLORS.secondary, paddingVertical: 15}}
                 placeholder="Password"
                 placeholderTextColor="#aaa"
-                secureTextEntry
+                secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
+                onFocus={() => setFocusedInput('password')}
+                onBlur={() => setFocusedInput(null)}
               />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
+              </TouchableOpacity>
           </View>
 
-          <View style={styles.passwordContainer}>
+          {/* Password Strength Indicators */}
+          <View style={{flexDirection: 'row', flexWrap: 'wrap', marginBottom: 15, paddingHorizontal: 10}}>
+            {renderPasswordRequirement(hasMinLength, "9+ Chars")}
+            {renderPasswordRequirement(hasUpperCase, "Uppercase")}
+            {renderPasswordRequirement(hasLowerCase, "Lowercase")}
+            {renderPasswordRequirement(hasNumber, "Number")}
+            {renderPasswordRequirement(hasSpecialChar, "Special Char")}
+          </View>
+
+          <View style={[styles.passwordContainer, focusedInput === 'confirmPassword' && { borderColor: COLORS.primary, borderWidth: 1, backgroundColor: COLORS.white }]}>
               <TextInput
-                style={[styles.loginInput, {marginBottom: 0, flex: 1}]}
+                style={{flex: 1, fontSize: 16, color: COLORS.secondary, paddingVertical: 15}}
                 placeholder="Confirm Password"
                 placeholderTextColor="#aaa"
-                secureTextEntry
+                secureTextEntry={!showConfirmPassword}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
+                onFocus={() => setFocusedInput('confirmPassword')}
+                onBlur={() => setFocusedInput(null)}
               />
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                <Text style={styles.eyeIcon}>{showConfirmPassword ? '🙈' : '👁️'}</Text>
+              </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={[styles.loginBtn, {marginTop: 20}]} onPress={handleSignup}>
+          <TouchableOpacity style={[styles.loginBtn, {marginTop: 10}]} onPress={handleSignup}>
               <Text style={styles.loginBtnText}>Sign Up</Text>
           </TouchableOpacity>
 
@@ -913,6 +1058,7 @@ const App = () => {
   const [isSignup, setIsSignup] = useState(false);
   const [isOtpVerification, setIsOtpVerification] = useState(false);
   const [showSplash, setShowSplash] = useState(false);
+  const [isGoogleLogin, setIsGoogleLogin] = useState(false);
   const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [cart, setCart] = useState([]);
   const isDarkMode = useColorScheme() === 'dark';
@@ -923,6 +1069,18 @@ const App = () => {
 
   if (showSplash) {
     return <SplashScreen onFinish={() => { setShowSplash(false); setIsAuthenticated(true); }} />;
+  }
+
+  if (isGoogleLogin) {
+    return (
+      <GoogleLoginScreen 
+        onSuccess={() => {
+          setIsGoogleLogin(false);
+          setShowSplash(true);
+        }}
+        onCancel={() => setIsGoogleLogin(false)}
+      />
+    );
   }
 
   if (!isAuthenticated) {
@@ -951,6 +1109,7 @@ const App = () => {
       <LoginScreen 
         onLogin={() => setShowSplash(true)} 
         onSignup={() => setIsSignup(true)} 
+        onGoogleLogin={() => setIsGoogleLogin(true)}
       />
     );
   }
@@ -1012,6 +1171,12 @@ const App = () => {
   const renderHeader = () => (
     <View style={styles.header}>
       <Text style={styles.logo}>Zynkly</Text>
+      <TouchableOpacity style={styles.walletButton}>
+        <Image 
+          source={{ uri: 'https://cdn-icons-png.flaticon.com/512/214/214362.png' }} 
+          style={{ width: 24, height: 24, tintColor: COLORS.primary }} 
+        />
+      </TouchableOpacity>
     </View>
   );
 
@@ -1161,6 +1326,21 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.primary,
+  },
+  walletButton: {
+    padding: 8,
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  walletIcon: {
+    fontSize: 20,
   },
   profileButton: {
     padding: 8,
