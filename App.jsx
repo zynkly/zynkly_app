@@ -308,7 +308,7 @@ const SignupScreen = ({ onLogin, onSignupSuccess }) => {
   const [focusedInput, setFocusedInput] = useState(null);
 
   // Password Validation States
-  const hasMinLength = password.length >= 9;
+  const hasMinLength = password.length >= 8;
   const hasUpperCase = /[A-Z]/.test(password);
   const hasLowerCase = /[a-z]/.test(password);
   const hasNumber = /[0-9]/.test(password);
@@ -339,6 +339,13 @@ const SignupScreen = ({ onLogin, onSignupSuccess }) => {
       Alert.alert("Error", "Passwords do not match");
       return;
     }
+
+    // Simulate Backend Failure (e.g., User already exists)
+    if (email.toLowerCase() === 'test@zynkly.com') {
+      Alert.alert("Signup Failed", "This email is already registered. Please login instead.");
+      return;
+    }
+
     // Simulate signup
     Alert.alert("Success", "Account created successfully!");
     onSignupSuccess();
